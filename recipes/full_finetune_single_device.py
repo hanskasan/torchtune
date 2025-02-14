@@ -786,7 +786,6 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 # HANS: Sample end_time
                 end_time = time.time()
 
-                torch.distributed.barrier()
                 torch.cuda.synchronize()
                 print(end_time - start_time)
                 start_time = time.time()
