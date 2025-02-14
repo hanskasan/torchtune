@@ -27,6 +27,8 @@ from torchtune.training.lr_schedulers import get_lr
 
 from tqdm import tqdm
 
+# HANS: Additionals
+import time
 
 log = utils.get_logger("DEBUG")
 
@@ -674,6 +676,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             self._sampler.set_epoch(curr_epoch)
 
             pbar = tqdm(total=self._steps_per_epoch)
+            
+            # HANS: Sample start_time
+            start_time = time.time()
+
             for idx, batch in enumerate(self._dataloader):
                 if (
                     self.max_steps_per_epoch is not None
@@ -776,6 +782,14 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 # Note we are stepping each batch, which might not include optimizer step in the trace
                 # if the schedule cycle doesn't align with gradient accumulation.
                 self._profiler.step()
+
+                # HANS: Sample end_time
+                end_time = time.time()
+
+                torch.distributed.barrier()
+                torch.cuda.synchronize()
+                print(end_time - start_time)
+                start_time = time.time()
 
             self.epochs_run += 1
             self.save_checkpoint(epoch=curr_epoch)
