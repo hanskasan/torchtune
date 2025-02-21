@@ -37,6 +37,8 @@ from tqdm import tqdm
 
 log = utils.get_logger("DEBUG")
 
+# HANS: Reset GPU before profiling
+torch.cuda.empty_cache()
 
 class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
     """
@@ -669,6 +671,10 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         running_loss = 0
         num_tokens = 0
 
+        # HANS: For timing
+        sum_forward = 0
+        sum_backward = 0
+
         with self._profiler as prof:
             # self.epochs_run should be non-zero when we're resuming from a checkpoint
             for curr_epoch in range(self.epochs_run, self.total_epochs):
@@ -705,9 +711,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                     # Loss is normalized by default so we multiply by the number of tokens
                     # This way we can normalize by the total number of tokens if we're accumulating gradients
+                    timestamp = time.time()
                     current_loss = self._loss_step(batch) * current_num_tokens
+                    sum_forward += time.time() - timestamp
                     running_loss += current_loss
+                    timestamp = time.time()
                     current_loss.backward()
+                    sum_backward += time.time() - timestamp
 
                     # Step with optimizer
                     if (idx + 1) % self._gradient_accumulation_steps == 0:
@@ -722,6 +732,14 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         self._lr_scheduler.step()
                         # Update the number of steps when the weights are updated
                         self.global_step += 1
+
+                        # HANS: Print timing results
+                        resolution = 1000
+                        if self.global_step > 0 and self.global_step % resolution == 0:
+                            print("Forward time:", sum_forward / resolution)
+                            print("Backward time:", sum_backward / resolution)
+                            sum_forward = 0
+                            sum_backward = 0
 
                         loss_to_log = running_loss.item() / num_tokens
                         pbar.update(1)
