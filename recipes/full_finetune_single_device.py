@@ -707,13 +707,17 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
-                timestamp = time.time()
+                torch.cuda.nvtx.range_push("forward")
+                # timestamp = time.time()
                 current_loss = self._loss_step(batch) * current_num_tokens
-                sum_forward += time.time() - timestamp
+                # sum_forward += time.time() - timestamp
                 running_loss += current_loss
-                timestamp = time.time()
+                torch.cuda.nvtx.range_pop()
+                torch.cuda.nvtx.range_push()
+                # timestamp = time.time()
                 current_loss.backward()
-                sum_backward += time.time() - timestamp
+                # sum_backward += time.time() - timestamp
+                torch.cuda.nvtx.range_pop()
 
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
