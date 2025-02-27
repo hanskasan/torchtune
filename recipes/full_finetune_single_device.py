@@ -713,7 +713,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 # sum_forward += time.time() - timestamp
                 running_loss += current_loss
                 torch.cuda.nvtx.range_pop()
-                torch.cuda.nvtx.range_push()
+                torch.cuda.nvtx.range_push("backward")
                 # timestamp = time.time()
                 current_loss.backward()
                 # sum_backward += time.time() - timestamp
