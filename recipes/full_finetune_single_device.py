@@ -707,17 +707,24 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
-                torch.cuda.nvtx.range_push("forward")
-                # timestamp = time.time()
+                # torch.cuda.nvtx.range_push("forward")
+
+                torch.cuda.synchronize()
+                timestamp = time.time()
                 current_loss = self._loss_step(batch) * current_num_tokens
-                # sum_forward += time.time() - timestamp
+                torch.cuda.synchronize()
+                sum_forward += time.time() - timestamp
                 running_loss += current_loss
-                torch.cuda.nvtx.range_pop()
-                torch.cuda.nvtx.range_push("backward")
-                # timestamp = time.time()
+
+                # torch.cuda.nvtx.range_pop()
+                # torch.cuda.nvtx.range_push("backward")
+
+                torch.cuda.synchronize()
+                timestamp = time.time()
                 current_loss.backward()
-                # sum_backward += time.time() - timestamp
-                torch.cuda.nvtx.range_pop()
+                torch.cuda.synchronize()
+                sum_backward += time.time() - timestamp
+                # torch.cuda.nvtx.range_pop()
 
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
@@ -737,7 +744,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     self.global_step += 1
 
                     # HANS: Print timing results
-                    resolution = 1000
+                    resolution = 100
                     if self.global_step > 0 and self.global_step % resolution == 0:
                         print("Forward time:", sum_forward / resolution)
                         print("Backward time:", sum_backward / resolution)

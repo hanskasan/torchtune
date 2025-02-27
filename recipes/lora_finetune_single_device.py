@@ -436,6 +436,19 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._is_dora = any(["magnitude" in k for k in self.adapter_params.keys()])
         set_trainable_params(model, self.adapter_params)
 
+        # HANS: To print model and adapter size
+        total = 0
+        for name, param in model.named_parameters():
+            total += param.flatten().size()[0]
+        print("Total model size", total)
+
+        total = 0
+        for key in self.adapter_params:
+            # print("Adapter size:", torch.numel(self.adapter_params[key]))
+            total += torch.numel(self.adapter_params[key])
+        print("Total adapter size:", total)
+        ### END ###
+
         if compile_model:
             training.compile_model(model)
 
@@ -711,17 +724,24 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                     # Loss is normalized by default so we multiply by the number of tokens
                     # This way we can normalize by the total number of tokens if we're accumulating gradients
-                    torch.cuda.nvtx.range_push("forward")
-                    # timestamp = time.time()
+                    # torch.cuda.nvtx.range_push("forward")
+                    
+                    torch.cuda.synchronize()
+                    timestamp = time.time()
                     current_loss = self._loss_step(batch) * current_num_tokens
-                    # sum_forward += time.time() - timestamp
+                    torch.cuda.synchronize()
+                    sum_forward += time.time() - timestamp
                     running_loss += current_loss
-                    torch.cuda.nvtx.range_pop()
-                    torch.cuda.nvtx.range_push("backward")
-                    # timestamp = time.time()
+
+                    # torch.cuda.nvtx.range_pop()
+                    # torch.cuda.nvtx.range_push("backward")
+
+                    torch.cuda.synchronize()
+                    timestamp = time.time()
                     current_loss.backward()
-                    # sum_backward += time.time() - timestamp
-                    torch.cuda.nvtx.range_pop()
+                    torch.cuda.synchronize()
+                    sum_backward += time.time() - timestamp
+                    # torch.cuda.nvtx.range_pop()
 
                     # Step with optimizer
                     if (idx + 1) % self._gradient_accumulation_steps == 0:
@@ -738,7 +758,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         self.global_step += 1
 
                         # HANS: Print timing results
-                        resolution = 1000
+                        resolution = 100
                         if self.global_step > 0 and self.global_step % resolution == 0:
                             print("Forward time:", sum_forward / resolution)
                             print("Backward time:", sum_backward / resolution)

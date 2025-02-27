@@ -24,7 +24,10 @@ output_dir: /tmp/torchtune/llama3_2_1B/lora_single_device # /tmp may be deleted 
 # Model Arguments
 model:
   _component_: torchtune.models.llama3_2.lora_llama3_2_1b
+  # lora_attn_modules: ['q_proj']
+  # lora_attn_modules: ['q_proj', 'v_proj']
   lora_attn_modules: ['q_proj', 'v_proj', 'output_proj']
+  # apply_lora_to_mlp: False
   apply_lora_to_mlp: True
   lora_rank: 64  # higher increases accuracy and memory
   lora_alpha: 128  # usually alpha=2*rank
@@ -65,7 +68,7 @@ lr_scheduler:
   num_warmup_steps: 100
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
-max_steps_per_epoch: 10
+max_steps_per_epoch: Null
 gradient_accumulation_steps: 1  # Use to increase effective batch size
 optimizer_in_bwd: True  # True saves memory. Requires gradient_accumulation_steps=1
 clip_grad_norm: null

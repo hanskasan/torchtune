@@ -57,7 +57,7 @@ optimizer:
   lr: 2e-5
 loss:
   _component_: torchtune.modules.loss.CEWithChunkedOutputLoss
-max_steps_per_epoch: 1 
+max_steps_per_epoch: Null
 gradient_accumulation_steps: 1  # Use to increase effective batch size
 optimizer_in_bwd: True  # True saves memory. Requires gradient_accumulation_steps=1
 clip_grad_norm: null
