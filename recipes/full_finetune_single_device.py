@@ -451,6 +451,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
 
+        # HANS: For debugging
+        # for idx, param in enumerate(model.parameters()):
+            # param.requires_grad_(idx == 145)
+
         return model
 
     def _setup_optimizer(

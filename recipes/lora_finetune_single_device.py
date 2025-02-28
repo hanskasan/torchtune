@@ -434,7 +434,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._apply_lora_to_output = getattr(cfg_model, "apply_lora_to_output", False)
         self.adapter_params = get_adapter_params(model)
         self._is_dora = any(["magnitude" in k for k in self.adapter_params.keys()])
-        set_trainable_params(model, self.adapter_params)
+        # set_trainable_params(model, self.adapter_params) # HANS: If this is commented out, all weights are trained (no frozen weights)
 
         # HANS: To print model and adapter size
         total = 0
@@ -742,6 +742,13 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     torch.cuda.synchronize()
                     sum_backward += time.time() - timestamp
                     # torch.cuda.nvtx.range_pop()
+
+                    # HANS: For debugging (count the number of non-zero gradients)
+                    # sum_grad = 0
+                    # for param in self._model.parameters():
+                    #     if param.grad is not None:
+                    #         sum_grad += torch.count_nonzero(param.grad) 
+                    # print(sum_grad)
 
                     # Step with optimizer
                     if (idx + 1) % self._gradient_accumulation_steps == 0:

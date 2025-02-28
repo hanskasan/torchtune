@@ -284,6 +284,10 @@ def lora_llama3_2(
             partial(reparametrize_as_dtype_state_dict_post_hook, offload_to_cpu=True)
         )
 
+    # HANS: For debugging (count the number of non-zero gradients)
+    # for name, param in model.named_parameters():
+        # print(name, "is_enabled", param.requires_grad)
+
     return model
 
 
@@ -340,10 +344,12 @@ def lora_llama3_2_self_attention(
     Raises:
         ValueError: If lora_modules arg is an empty list
     """
-    if not lora_modules:
-        raise ValueError(
-            f"Must pass one or more of {LORA_ATTN_MODULES} as lora_modules"
-        )
+
+    # HANS: Comment this out for debugging
+    # if not lora_modules:
+    #     raise ValueError(
+    #         f"Must pass one or more of {LORA_ATTN_MODULES} as lora_modules"
+    #     )
 
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads
     adapter_cls = DoRALinear if use_dora else LoRALinear
