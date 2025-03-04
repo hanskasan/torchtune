@@ -625,13 +625,16 @@ class TransformerDecoder(nn.Module):
         )
 
         # shape: [b, s, d]
+        torch.cuda.nvtx.range_push("Token")
         h = self.tok_embeddings(tokens)
+        torch.cuda.nvtx.range_pop()
 
         hidden = []
         for i, layer in enumerate(self.layers):
             if i in self.output_hidden_states:
                 hidden.append(h)
             # shape: [b, s, d]
+            torch.cuda.nvtx.range_push(f"Layer {i}")
             h = layer(
                 h,
                 mask=mask,
@@ -639,9 +642,12 @@ class TransformerDecoder(nn.Module):
                 encoder_mask=encoder_mask,
                 input_pos=input_pos,
             )
+            torch.cuda.nvtx.range_pop()
 
         # shape: [b, seq_len, out_dim]
+        torch.cuda.nvtx.range_push("Output")
         output = self.unembed(h)
+        torch.cuda.nvtx.range_pop()
 
         # Output list if hidden states are requested, otherwise just the output
         # TODO: always output a list to have a consistent output type
