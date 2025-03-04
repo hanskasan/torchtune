@@ -651,7 +651,10 @@ class TransformerDecoder(nn.Module):
 
         # Output list if hidden states are requested, otherwise just the output
         # TODO: always output a list to have a consistent output type
+        torch.cuda.nvtx.range_push("Append")
         output = output if not hidden else [*hidden, output]
+        torch.cuda.nvtx.range_pop()
+
         return output
 
     def unembed(self, h):

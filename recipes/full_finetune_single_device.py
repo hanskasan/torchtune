@@ -452,8 +452,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             training.log_memory_stats(memory_stats)
 
         # HANS: For debugging. Used this to reproduce forward-pass slow down in LoRA.
-        for idx, param in enumerate(model.parameters()):
-            param.requires_grad_(idx != 0)
+        # for idx, param in enumerate(model.parameters()):
+            # param.requires_grad_(idx != 0)
 
         return model
 
@@ -648,7 +648,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             logits = logits.reshape(-1, logits.size(-1))
 
         # Compute loss
+        torch.cuda.nvtx.range_push("compute_loss")
         loss = self._loss_fn(logits, labels)
+        torch.cuda.nvtx.range_pop()
         # free logits otherwise it peaks backward memory
         del logits
 
@@ -713,21 +715,21 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
                 torch.cuda.nvtx.range_push("forward")
 
-                torch.cuda.synchronize()
-                timestamp = time.time()
+                # torch.cuda.synchronize()
+                # timestamp = time.time()
                 current_loss = self._loss_step(batch) * current_num_tokens
-                torch.cuda.synchronize()
-                sum_forward += time.time() - timestamp
+                # torch.cuda.synchronize()
+                # sum_forward += time.time() - timestamp
                 running_loss += current_loss
 
                 torch.cuda.nvtx.range_pop()
                 torch.cuda.nvtx.range_push("backward")
 
-                torch.cuda.synchronize()
-                timestamp = time.time()
+                # torch.cuda.synchronize()
+                # timestamp = time.time()
                 current_loss.backward()
-                torch.cuda.synchronize()
-                sum_backward += time.time() - timestamp
+                # torch.cuda.synchronize()
+                # sum_backward += time.time() - timestamp
                 torch.cuda.nvtx.range_pop()
 
                 # Step with optimizer
