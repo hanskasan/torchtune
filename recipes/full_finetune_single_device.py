@@ -451,9 +451,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             memory_stats = training.get_memory_stats(device=self._device)
             training.log_memory_stats(memory_stats)
 
-        # HANS: For debugging
-        # for idx, param in enumerate(model.parameters()):
-            # param.requires_grad_(idx == 145)
+        # HANS: For debugging. Used this to reproduce forward-pass slow down in LoRA.
+        for idx, param in enumerate(model.parameters()):
+            param.requires_grad_(idx != 0)
 
         return model
 
@@ -711,7 +711,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
                 # Loss is normalized by default so we multiply by the number of tokens
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
-                # torch.cuda.nvtx.range_push("forward")
+                torch.cuda.nvtx.range_push("forward")
 
                 torch.cuda.synchronize()
                 timestamp = time.time()
@@ -720,15 +720,15 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 sum_forward += time.time() - timestamp
                 running_loss += current_loss
 
-                # torch.cuda.nvtx.range_pop()
-                # torch.cuda.nvtx.range_push("backward")
+                torch.cuda.nvtx.range_pop()
+                torch.cuda.nvtx.range_push("backward")
 
                 torch.cuda.synchronize()
                 timestamp = time.time()
                 current_loss.backward()
                 torch.cuda.synchronize()
                 sum_backward += time.time() - timestamp
-                # torch.cuda.nvtx.range_pop()
+                torch.cuda.nvtx.range_pop()
 
                 # Step with optimizer
                 if (idx + 1) % self._gradient_accumulation_steps == 0:
