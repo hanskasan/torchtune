@@ -187,3 +187,7 @@ cover/
 
 # wandb
 wandb/
+
+# NSights
+*.nsys-rep
+*.ncu-rep
