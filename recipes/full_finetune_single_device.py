@@ -457,8 +457,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
 
         # HANS: For debugging. Used this to reproduce forward-pass slow down in LoRA.
         for idx, param in enumerate(model.parameters()):
-            # param.requires_grad_(False)
-            param.requires_grad_(idx != 0)
+            param.requires_grad_(False)
+            # param.requires_grad_(idx != 0)
             # param.requires_grad_(idx == 0)
 
         return model
@@ -735,7 +735,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 torch.cuda.nvtx.range_push("backward")
 
                 start_event.record()
-                current_loss.backward()
+                # current_loss.backward()
                 end_event.record()
                 torch.cuda.synchronize()
                 sum_backward += start_event.elapsed_time(end_event)
@@ -759,7 +759,7 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     self.global_step += 1
 
                     # HANS: Print timing results
-                    resolution = 100
+                    resolution = 10
                     if self.global_step > 0 and self.global_step % resolution == 0:
                         print("Forward time:", sum_forward / resolution / 1000)
                         print("Backward time:", sum_backward / resolution / 1000)
