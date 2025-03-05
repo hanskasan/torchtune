@@ -302,10 +302,12 @@ def lora_phi3_self_attention(
     Raises:
         ValueError: If lora_modules arg is an empty list
     """
-    if not lora_modules:
-        raise ValueError(
-            f"Must pass one or more of {LORA_ATTN_MODULES} as lora_modules"
-        )
+
+    # HANS: Commented out for debugging
+    # if not lora_modules:
+    #     raise ValueError(
+    #         f"Must pass one or more of {LORA_ATTN_MODULES} as lora_modules"
+    #     )
 
     head_dim = embed_dim // num_heads
     num_kv_heads = num_kv_heads if num_kv_heads else num_heads

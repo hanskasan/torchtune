@@ -3,6 +3,8 @@
 ##### LLAMA 3.2 #####
 
 # tune run full_finetune_single_device --config recipes/hans_configs/llama3_2/1B_full_single_device.yaml
+
+# tune run lora_finetune_single_device --config recipes/hans_configs/llama3_2/1B_lora-forcefull_single_device.yaml
 # tune run lora_finetune_single_device --config recipes/hans_configs/llama3_2/1B_lora_single_device.yaml
 
 # FOR NSIGHT SYSTEM PROFILING
@@ -17,10 +19,14 @@
 ##### QWEN 2.5 #####
 
 # tune run full_finetune_single_device --config recipes/hans_configs/qwen2_5/0.5B_full_single_device.yaml
+
+# tune run lora_finetune_single_device --config recipes/hans_configs/qwen2_5/0.5B_lora_forcefull_single_device.yaml
 # tune run lora_finetune_single_device --config recipes/hans_configs/qwen2_5/0.5B_lora_single_device.yaml
 
 
 ##### PHI3 #####
 
-tune run full_finetune_single_device --config recipes/hans_configs/phi3/mini_full.yaml
+# tune run full_finetune_single_device --config recipes/hans_configs/phi3/mini_full.yaml
+
+tune run lora_finetune_single_device --config recipes/hans_configs/phi3/mini_lora_forcefull_single_device.yaml
 # tune run lora_finetune_single_device --config recipes/hans_configs/phi3/mini_lora_single_device.yaml

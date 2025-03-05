@@ -434,7 +434,6 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         self._apply_lora_to_output = getattr(cfg_model, "apply_lora_to_output", False)
         self.adapter_params = get_adapter_params(model)
         self._is_dora = any(["magnitude" in k for k in self.adapter_params.keys()])
-        set_trainable_params(model, self.adapter_params) # HANS: If this is commented out, all weights are trained (no frozen weights)
 
         # HANS: To print model and adapter size
         total = 0
@@ -447,6 +446,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
             # print("Adapter size:", torch.numel(self.adapter_params[key]))
             total += torch.numel(self.adapter_params[key])
         print("Total adapter size:", total)
+
+        # set_trainable_params(model, self.adapter_params) # HANS: If this is commented out, all weights are trained (full finetuning)
+
         ### END ###
 
         if compile_model:
@@ -768,7 +770,7 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         self.global_step += 1
 
                         # HANS: Print timing results
-                        resolution = 10
+                        resolution = 100
                         if self.global_step > 0 and self.global_step % resolution == 0:
                             print("Forward time:", sum_forward / resolution / 1000)
                             print("Backward time:", sum_backward / resolution / 1000)
