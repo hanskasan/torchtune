@@ -114,6 +114,8 @@ def llama3_2(
         layers.append(layer)
 
     tok_embeddings = nn.Embedding(vocab_size, embed_dim)
+    # HANS: For debugging
+    # print("is_tie:", tie_word_embeddings)
     if tie_word_embeddings:
         output_proj = TiedLinear(tok_embeddings)
     else:
@@ -283,10 +285,6 @@ def lora_llama3_2(
         model._register_state_dict_hook(
             partial(reparametrize_as_dtype_state_dict_post_hook, offload_to_cpu=True)
         )
-
-    # HANS: For debugging (count the number of non-zero gradients)
-    # for name, param in model.named_parameters():
-        # print(name, "is_enabled", param.requires_grad)
 
     return model
 

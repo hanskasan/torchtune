@@ -425,6 +425,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         with training.set_default_dtype(self._dtype), self._device:
             model = config.instantiate(cfg_model)
 
+        # HANS: For debugging (count the number of non-zero gradients)
+        for name, param in model.named_parameters():
+            print(name, "is_enabled", param.requires_grad, torch.numel(param))
+
         if compile_model:
             training.compile_model(model)
 
@@ -452,8 +456,10 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
             training.log_memory_stats(memory_stats)
 
         # HANS: For debugging. Used this to reproduce forward-pass slow down in LoRA.
-        # for idx, param in enumerate(model.parameters()):
-            # param.requires_grad_(idx != 0)
+        for idx, param in enumerate(model.parameters()):
+            # param.requires_grad_(False)
+            param.requires_grad_(idx != 0)
+            # param.requires_grad_(idx == 0)
 
         return model
 
@@ -678,6 +684,9 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
         sum_forward = 0
         sum_backward = 0
 
+        start_event = torch.cuda.Event(enable_timing=True)
+        end_event = torch.cuda.Event(enable_timing=True)
+
         self._profiler.start()
         # self.epochs_run should be non-zero when we're resuming from a checkpoint
         for curr_epoch in range(self.epochs_run, self.total_epochs):
@@ -715,21 +724,21 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                 # This way we can normalize by the total number of tokens if we're accumulating gradients
                 torch.cuda.nvtx.range_push("forward")
 
-                # torch.cuda.synchronize()
-                # timestamp = time.time()
+                start_event.record()
                 current_loss = self._loss_step(batch) * current_num_tokens
-                # torch.cuda.synchronize()
-                # sum_forward += time.time() - timestamp
+                end_event.record()
+                torch.cuda.synchronize()
+                sum_forward += start_event.elapsed_time(end_event)
                 running_loss += current_loss
 
                 torch.cuda.nvtx.range_pop()
                 torch.cuda.nvtx.range_push("backward")
 
-                # torch.cuda.synchronize()
-                # timestamp = time.time()
+                start_event.record()
                 current_loss.backward()
-                # torch.cuda.synchronize()
-                # sum_backward += time.time() - timestamp
+                end_event.record()
+                torch.cuda.synchronize()
+                sum_backward += start_event.elapsed_time(end_event)
                 torch.cuda.nvtx.range_pop()
 
                 # Step with optimizer
@@ -752,8 +761,8 @@ class FullFinetuneRecipeSingleDevice(FTRecipeInterface):
                     # HANS: Print timing results
                     resolution = 100
                     if self.global_step > 0 and self.global_step % resolution == 0:
-                        print("Forward time:", sum_forward / resolution)
-                        print("Backward time:", sum_backward / resolution)
+                        print("Forward time:", sum_forward / resolution / 1000)
+                        print("Backward time:", sum_backward / resolution / 1000)
                         sum_forward = 0
                         sum_backward = 0
 

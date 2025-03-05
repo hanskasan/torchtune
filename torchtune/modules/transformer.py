@@ -661,6 +661,9 @@ class TransformerDecoder(nn.Module):
         # shape: [b, s, d]
         h = self.norm(h)
 
+        # HANS: For debugging
+        # print("Output Chunks:", self.num_output_chunks)
+
         if self.num_output_chunks > 0:
             output = self.chunked_output(h)
         else:

@@ -688,6 +688,9 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
         sum_forward = 0
         sum_backward = 0
 
+        start_event = torch.cuda.Event(enable_timing=True)
+        end_event = torch.cuda.Event(enable_timing=True)
+
         with self._profiler as prof:
             # self.epochs_run should be non-zero when we're resuming from a checkpoint
             for curr_epoch in range(self.epochs_run, self.total_epochs):
@@ -726,21 +729,21 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                     # This way we can normalize by the total number of tokens if we're accumulating gradients
                     # torch.cuda.nvtx.range_push("forward")
                     
-                    torch.cuda.synchronize()
-                    timestamp = time.time()
+                    start_event.record()
                     current_loss = self._loss_step(batch) * current_num_tokens
+                    end_event.record()
                     torch.cuda.synchronize()
-                    sum_forward += time.time() - timestamp
+                    sum_forward += start_event.elapsed_time(end_event)
                     running_loss += current_loss
 
                     # torch.cuda.nvtx.range_pop()
                     # torch.cuda.nvtx.range_push("backward")
 
-                    torch.cuda.synchronize()
-                    timestamp = time.time()
+                    start_event.record()
                     current_loss.backward()
+                    end_event.record()
                     torch.cuda.synchronize()
-                    sum_backward += time.time() - timestamp
+                    sum_backward += start_event.elapsed_time(end_event)
                     # torch.cuda.nvtx.range_pop()
 
                     # HANS: For debugging (count the number of non-zero gradients)
@@ -767,8 +770,8 @@ class LoRAFinetuneRecipeSingleDevice(FTRecipeInterface):
                         # HANS: Print timing results
                         resolution = 100
                         if self.global_step > 0 and self.global_step % resolution == 0:
-                            print("Forward time:", sum_forward / resolution)
-                            print("Backward time:", sum_backward / resolution)
+                            print("Forward time:", sum_forward / resolution / 1000)
+                            print("Backward time:", sum_backward / resolution / 1000)
                             sum_forward = 0
                             sum_backward = 0
 
